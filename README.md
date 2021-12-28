@@ -1,6 +1,8 @@
 <img src="static/xmas_tree_cover.png">
 
 # How to Draw a Christmas Tree with Python and Plotly
+[![](https://img.shields.io/static/v1?label=%20&message=Jupyter%20Notebook&color=gray&logo=Jupyter)](https://github.com/gcgrossi/xmas_tree/blob/main/xmas_tree.ipynb)
+[![](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1WskeMfLA8P0xbzzQwvrdapp3Z4YB89GW?usp=sharing)
 
 The Christmas version of the episodes regarding my advendtures in the world of Data Science and Tech is focused on art: the Art of drawing something using some basic math, some for loops and a pinch of creativity. Today I'm going to draw a Christmas tree.
 
