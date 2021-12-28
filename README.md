@@ -1,4 +1,4 @@
-<image src="static/xmas_tree_cover.png">
+<img src="static/xmas_tree_cover.png">
 
 # How to Draw a Christmas Tree with Python and Plotly
 ### 🎄 A Christmas Tree🎄
