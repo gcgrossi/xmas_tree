@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block head %}
+{%- endblock head %}
+
+{% block content %}
+
+<body style="background-color: black;">
+    
+    <!-- Special classes of halfmoon 
+         css to manage page content-->
+    <div class="page-wrapper">
+        <div class="content-wrapper">
+            <div class="container-sm">
+
+                <div class="card mt-0 mr-20 ml-20" style="background-color:black; height:100%">
+                    <h4  class="font-weight-bold text-center text-white mt-0 mb-0" onclick="runLightAnimation()">Merry Xmas</h4>
+                    <div style = "width:100%;height:100%" id="canvas_perf" class="chart mr-10 ml-10"></div>                                
+                </div>
+
+            </div> <!-- container -->
+        </div> <!-- content-wrapper -->
+    </div> <!-- page-wrapper -->
+
+</body>
+
+{% endblock %}
+{% block scripts %}
+
+<!-- Import Halfmoon JS -->
+<script src="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/js/halfmoon.min.js"></script>
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // generate all the drawing at document load
+        getGenerateData();
+    });
+
+    function runLightAnimation(){
+        // start drawing the lights for the first time
+        getLights('start');
+        // run again the animation each 5 seconds
+        var intervalId = window.setInterval(function(){getLights();}, 5000);
+    } 
+
+    function getLights(startstop) {
+        // make an AJAX call to the backend
+        // obtain the lights data in JSON format
+        // and call the generateLights function if
+        // response id successfull
+        console.log('performing AJAX request ... ')
+
+        $.ajax({
+            url: '/light',
+            type: 'GET',
+            success: function (response) {
+                console.log('Success');
+                console.log(JSON.parse(response))
+                generateLights(JSON.parse(response),startstop);
+            },
+            error: function (response) {
+                console.log('Error');
+                console.log(JSON.parse(response));
+            }
+        });
+    }
+
+    function generateLights(datain, startstop) {
+        // add the light trace to the plot if we start for the first time
+        // otherwise removes the last trace (the previous light) and adds the
+        // new one. In this way we obtain the changing lights animation.
+
+        var data_lights =
+                    [{
+                        x: datain['x'],
+                        y: datain['y'],
+                        type: 'scatter',
+                        mode: 'markers',
+                        name: 'lights',
+                        marker: { color: 'yellow', symbol:'diamond', size: datain['size'] }
+                    }];
+        
+        if (startstop == "start"){
+            Plotly.addTraces('canvas_perf', data_lights);
+        }else{
+            Plotly.deleteTraces('canvas_perf', -1);
+            Plotly.addTraces('canvas_perf', data_lights);
+        }       
+
+    }
+  
+    function getGenerateData() {
+        // make an AJAX call to the backend
+        // obtain the tree data in JSON format
+        // and call the generateChart function if
+        // response id successfull
+        console.log('performing AJAX request ... ')
+
+        $.ajax({
+            url: '/getdata',
+            type: 'GET',
+            success: function (response) {
+                console.log('Success');
+                console.log(JSON.parse(response))
+                generateCharts(JSON.parse(response));
+            },
+            error: function (response) {
+                console.log('Error');
+                console.log(JSON.parse(response));
+            }
+        });
+    }
+
+
+    function generateCharts(datain) {
+
+        // empty list that will be pushed 
+        // with data for the plotply chart
+        var data = [];
+
+        // for the time being I only suppose that we punshed
+        // just one set of branches to the tree so that I will
+        // only take the first component. Should be extended to
+        // multiple set of branches with a for loop.
+
+        // the tree
+        var data_tree =
+        {
+            x: datain['xtree'][0],
+            y: datain['ytree'][0],
+            type: 'scatter',
+            name: 'tree',
+            mode: 'markers',
+            marker: { color: 'forestgreen', size: datain['leaf_size'][0], line : {width:0} },
+            line : {width:0}
+        };
+
+        // the shade
+        var data_shade =
+        {
+            x: datain['xshade'][0],
+            y: datain['ytree'][0],
+            type: 'scatter',
+            name: 'shade',
+            mode: 'markers',
+            marker: { color: 'forestgreen', size: datain['leaf_size'][0], line : {width:0} },
+        };
+
+
+        // the torso
+        datain['xtorso'].forEach(function(xval){
+            var data_torso =
+            {
+                x: xval,
+                y: datain['ytorso'],
+                type: 'scatter',
+                name: 'shade',
+                mode: 'markers',
+                marker: { color: 'brown', size: datain['leaf_size'][0], line : {width:0} },
+            };
+            data.push(data_torso);
+
+        });
+        
+        // the star
+        var data_star =
+        {
+            x: [0],
+            y: [20],
+            type: 'scatter',
+            name: 'shade',
+            mode: 'markers',
+            marker: { color: 'yellow', symbol:'star',size:40, line : {width:0} },
+        };
+        
+        data.push(data_shade);
+        data.push(data_tree);
+        data.push(data_star);
+
+        // the balls
+        for (let i = 0; i < datain['xballs'].length; i++) {
+            var data_balls =
+            {
+                x: [datain['xballs'][i]],
+                y: [datain['yballs'][i]],
+                type: 'scatter',
+                name: 'balls',
+                mode: 'markers',
+                marker: { color: datain['ball_color'][i], size: datain['ball_size'][i], line : {width:0} },
+            };
+            data.push(data_balls);
+        }
+
+        // a layout dictionary for styling
+        var layout_data = {
+            title: '',
+            xaxis: {range:[-0.8,0.8], title : '',linecolor:'black',showticklabels:false, showgrid: false, zeroline:false},
+            yaxis: {title : '',linecolor:'black',showticklabels:false, showgrid: false, zeroline:false},
+            margin: { pad: 0, t: 20, b: 20, r:20 , l:20 },
+            showlegend: false,
+            paper_bgcolor:'black',
+            plot_bgcolor:'black',
+        };
+
+        createCanvas('canvas_perf','card_perf', data, layout_data);
+    }
+
+    function createCanvas(canvas_id, card_id, data, layout) {
+        Plotly.newPlot(canvas_id, data, layout);
+    }
+
+</script>
+{%- endblock scripts %}
