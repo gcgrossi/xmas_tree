@@ -30,3 +30,259 @@ Let's start! But before:
 
 2. Running the script is costly and not optimized. I didn't much care about time optmisation here. The resulting experience may therefore be slow/resource consuming.
 
+## Imports
+
+```python 
+import math
+import random
+import numpy as np
+import plotly.graph_objects as go
+```
+
+## Branches
+
+Let's draw a branch. We can achieve this by using our magic formula for a certain value of $h$ and $m$. To make things look more 'natural', we will drawn n random points (that we will assimilate to leafs) with random size.
+
+```python 
+# n leafs if the number of points in each branch
+nleafs= 1000
+max_leaf_size = 3
+
+xs,ys,ls = [],[],[]
+for leaf in range(0,nleafs): 
+                
+  # draw a random number for each element x corrdinate
+  x = random.uniform(-abs(5),abs(5))
+  # use our magic formula to obtain the y coordinate
+  y = 1+(5/math.exp(abs(x)))
+
+  # append a list with the coordinates
+  # assign also a variable size to each point
+  xs.append(x)
+  ys.append(y)
+  ls.append(random.randint(1,max_leaf_size))
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=xs, y=ys ,mode='markers', marker=dict(color='forestgreen', size=ls, line=dict(width=0))))
+fig.show()
+```
+
+<img src="static/branch.png">
+
+### Drawing many branches
+
+We can draw many branches by repeating the procedure for different values of the parameter $m$.
+
+```python
+# n leafs if the number of points in each branch
+nleafs= 1000
+max_leaf_size = 3
+branch_step = 1
+nbranches = 10.0
+
+# we create a series of 'master' lists with
+# x coordinates of the branch and the shade
+# y coordinate of the branch and the size of each point ('leaf')
+xtree,ytree,leaf_size = [],[],[]
+
+# we create a seriers of values used to "represent"
+# a branch of the tree. They will be used for 
+# furter calculations
+branch = np.arange(1.0,nbranches,branch_step)
+
+for b in branch:
+  xs,ys,ls = [],[],[]
+  for leaf in range(0,nleafs): 
+                
+    # draw a random number for each element x corrdinate
+    x = random.uniform(-abs(5),abs(5))
+    # use our magic formula to obtain the y coordinate
+    y = 1+(b/math.exp(abs(x)))
+
+    # append a list with the coordinates
+    # assign also a variable size to each point
+    xs.append(x)
+    ys.append(y)
+    ls.append(random.randint(1,max_leaf_size))
+  
+  # for each branch append the corresponding branch points
+  # to the master list.
+  xtree.append(xs)
+  ytree.append(ys)
+  leaf_size.append(ls)
+
+
+fig = go.Figure()
+for i,x in enumerate(xtree): fig.add_trace(go.Scatter(x=x, y=ytree[i] ,mode='markers', marker=dict(color='forestgreen', size=ls, line=dict(width=0))))
+fig.show()
+```
+
+<img src="static/branches.png">
+
+Not yet the figure we would like to see, they don't have the aspect of branches of a tree! But if you look closer you will see that we are not so far from a good result. The only thing that is missing is limiting the x range, $[-xmax,xmax]$, of each branch and having a slower slope. We want a small x-range and high slope for the top branches and higher x-range and lower slope for the bottom branches.
+
+We will use linearly decreasing values for $m$ and $xmax$ as a function of the branch
+
+$m = \frac{(b-b_1)*(m_2-m_1)}{(b_2-b_1)} + m_1$ 
+
+$xmax = \frac{(b-b_1)*(x_2-x_1)}{(b_2-b_1)} + x_1$ 
+
+<br>
+We can chose in example:
+
+$b \in [1,10] , m \in [0,20], xmax \in [0,0.3]$ 
+
+```python
+# n leafs if the number of points in each branch
+nleafs= 1000
+max_leaf_size = 3
+branch_step = 1/5
+nbranches = 10.0
+
+# we create a series of 'master' lists with
+# x coordinates of the branch and the shade
+# y coordinate of the branch and the size of each point ('leaf')
+xtree, xshade, ytree,leaf_size = [],[],[],[]
+
+# we initialize the values 
+# x1,x2: bottom and top (of the three) maximum x coordinate of a branch
+# x3,x4: bottom and top (of the three) maximum x coordinate of the branch shade
+# m1,m2: bottom and top (of the three) slope of the branch
+x1,x2 = 0.3,0
+x3,x4 = 0.2,0
+m1,m2 = 0,20
+
+# we create a seriers of values used to "represent"
+# a branch of the tree. They will be used for 
+# furter calculations
+branch = np.arange(1.0,nbranches,branch_step)
+
+for b in branch:
+  xs,xsh,ys,ls = [],[],[],[]
+
+  # in order to create an effect of branches with length
+  # that decreases along the tree (from top to bottom)
+  # we linearly decrease the maximum x coordinate of the branch
+  xtop = (b-branch[0])*(x2-x1)/(branch[-1]-branch[0])+x1
+            
+  # in order to have a less static cutoff we add to this max value
+  # a random number that is a fraction of xtop. (A gaussian blurring
+  # may also be applied, but I didn't test it).
+  xtop = xtop+random.uniform(-abs(xtop),abs(xtop))/5
+
+  # same procedure is applied to the shade
+  shade = (b-branch[0])*(x4-x3)/(branch[-1]-branch[0])+x3
+  shade = shade+random.uniform(-abs(shade),abs(shade))/5
+
+  # also the slope of the branch is changed linearly along the tree.
+  # this gives the effect of having a flat base to the tree
+  # with more spiked top.
+  m  = (b-branch[0])*(m2-m1)/(branch[-1]-branch[0])+m1
+
+  for leaf in range(0,nleafs): 
+                
+    # draw a random number for each element x corrdinate
+    x = random.uniform(-abs(xtop),abs(xtop))
+    s = random.uniform(-abs(shade),abs(shade))
+    # use our magic formula to obtain the y coordinate
+    y = (m/math.exp(abs(x)))
+
+    # append a list with the coordinates
+    # assign also a variable size to each point
+    xs.append(x)
+    xsh.append(s)
+    ys.append(y)
+    ls.append(random.randint(1,max_leaf_size))
+  
+  # for each branch append the corresponding branch points
+  # to the master list.
+  xtree.append(xs)
+  xshade.append(xsh)
+  ytree.append(ys)
+  leaf_size.append(ls)
+
+fig = go.Figure()
+for i,x in enumerate(xtree): 
+  fig.add_trace(go.Scatter(x=x, y=ytree[i] ,mode='markers', marker=dict(color='forestgreen', size=leaf_size[i], line=dict(width=0))))
+  fig.add_trace(go.Scatter(x=xshade[i], y=ytree[i] ,mode='markers', marker=dict(color='springgreen', size=leaf_size[i], line=dict(width=0))))
+fig.update_xaxes(range=[-0.8,0.8])
+fig.show()
+```
+
+<img src="static/shadow.png">
+
+As you can see, with the same principle we also added a 'shading effect' and colored with a different tone. You can try different colors and see if you obtain a better effect.
+
+## Adding the log
+
+we can add the log at the bottom in a very simple way. We create a series of vertical lines densed packed together
+
+```python
+# we create the torso of the tree by
+# creating a series of vertical lines
+ytorso = list(np.arange(m1-1,m1,0.1))
+xrange,xstep,xtorso = 0.02,0.001,[]
+for t in np.arange(-xrange,xrange,xstep):
+    x=[t for _ in ytorso]
+    xtorso.append(x)
+```
+
+## Adding the balls and the star at the top
+
+We will add the balls by picking a random point in the tree and assigning a point in the same x,y coordinates with variable size and color.
+
+```python
+max_ball_size = 20
+nballs = 1
+
+# a list of plotly colors for the balls
+colors = ['firebrick','cornflowerblue','indigo','indigo','silver','gold','violet']
+    
+ballsx,ballsy,size_ball,c = [],[],[],[]
+    
+# we loop over the master list and for each set of 
+# coordinates and each we draw nballs random coordinate 
+for X,Y in zip(xtree,ytree):
+    for i in range(0,nballs):
+        b = random.randint(0,len(X)-1)
+
+        # if the coordinate is a little bit less than the top
+        # (we want some space to put the star to the top)
+        # we append the ball coordinate, the size and the
+        # color (drawn randomly from the color list)
+        if Y[b] < m2-2:
+            ballsx.append(X[b])
+            ballsy.append(Y[b])
+            size_ball.append(random.randint(5,max_ball_size))
+            c.append(colors[random.randint(0,len(colors)-1)])
+```
+
+## Drawing the final result
+
+```python
+fig = go.Figure()
+
+# drawing the branches
+for i,x in enumerate(xtree): 
+  fig.add_trace(go.Scatter(x=x, y=ytree[i] ,mode='markers', marker=dict(color='forestgreen', size=ls, line=dict(width=0))))
+  fig.add_trace(go.Scatter(x=xshade[i], y=ytree[i] ,mode='markers', marker=dict(color='forestgreen', size=ls, line=dict(width=0))))
+
+# drawing the log
+for i,x in enumerate(xtorso): fig.add_trace(go.Scatter(x=x, y=ytorso ,mode='markers', marker=dict(color='brown', size=leaf_size[0], line=dict(width=0))))
+# drawing the log
+for i,x in enumerate(ballsx): fig.add_trace(go.Scatter(x=[x], y=[ballsy[i]] ,mode='markers', marker=dict(color=c[i], size=size_ball[i], line=dict(width=0))))
+# drawing the star
+fig.add_trace(go.Scatter(x=[0], y=[m2] ,mode='markers', marker=dict(symbol ='star', color='yellow', size=40, line=dict(width=0))))
+
+fig.layout = {'title' : '',
+              'showlegend':False, 
+               'xaxis': {'range':[-0.8,0.8], 'title' : '','linecolor':'black','showticklabels':False, 'showgrid': False, 'zeroline':False},
+               'yaxis': { 'title' : '','linecolor':'black','showticklabels':False, 'showgrid': False, 'zeroline':False},
+               'paper_bgcolor':'black','plot_bgcolor':'black'}
+
+fig.show()
+```
+<img src="static/example_tree.png">
+
+
+
