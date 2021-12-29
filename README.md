@@ -462,7 +462,13 @@ To add the light animation, is sufficient to repeat the AJAX call each x seconds
  
  If we run the function runLightAnimation() on 'onclick' event The animation would look like this : [![](https://img.shields.io/badge/Animation-C10316?style=for-the-badge)](https://www.loom.com/share/f8532a44882b4973a863132438955f3e?sharedAppSource=personal_library)
 
+Very very Christmas animation!
 
+## Conclusion
+At the beginning I just wanted to make a simple tree and show it with my community on LinkedIn, just to have an original way of saying 'Happy Christmas' to the Data Science community. As al the projects, I start with a simple thing made with for loops, random numbers and math, and end up deploying an app with animations without even knowing. I think this is the power of technolgy that is really powering my constant seek for knowledge.
 
+I ended up writing a full docmentation of the project and spending more than a couple of hours on it! But at least it was worth something. I got a mention on the official Plotly LinkedIn page. An important achievement for such a small, Christmas project!
 
 [Plotly Linkedin Post](https://www.linkedin.com/feed/update/urn:li:activity:6881628600831918080/)
+
+<img src="static/plotly_linkedin.png">
