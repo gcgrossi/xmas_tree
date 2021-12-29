@@ -393,7 +393,74 @@ document.addEventListener('DOMContentLoaded', function () {
 
 ```
 
-The most important part is the AJAX request in ```getGenerateData()``` that is responsible of the communication with the back-end
+The most important part is the AJAX request in ```getGenerateData()``` that is responsible of the communication with the back-end. If the request is succesfull then the json is passed to the drawing utility function ```generateCharts()``` that is responsible to prepare the data for plotly newPlot function.
+
+```javascript
+ function createCanvas(canvas_id, card_id, data, layout) {
+        Plotly.newPlot(canvas_id, data, layout);
+    }
+```
+
+To add the light animation, is sufficient to repeat the AJAX call each x seconds. This is done with this trunk of code:
+
+```javascript
+    function runLightAnimation(){
+        // start drawing the lights for the first time
+        getLights('start');
+        // run again the animation each 5 seconds
+        var intervalId = window.setInterval(function(){getLights();}, 5000);
+    } 
+
+    function getLights(startstop) {
+        // make an AJAX call to the backend
+        // obtain the lights data in JSON format
+        // and call the generateLights function if
+        // response id successfull
+        console.log('performing AJAX request ... ')
+
+        $.ajax({
+            url: '/light',
+            type: 'GET',
+            success: function (response) {
+                console.log('Success');
+                console.log(JSON.parse(response))
+                generateLights(JSON.parse(response),startstop);
+            },
+            error: function (response) {
+                console.log('Error');
+                console.log(JSON.parse(response));
+            }
+        });
+    }
+
+    function generateLights(datain, startstop) {
+        // add the light trace to the plot if we start for the first time
+        // otherwise removes the last trace (the previous light) and adds the
+        // new one. In this way we obtain the changing lights animation.
+
+        var data_lights =
+                    [{
+                        x: datain['x'],
+                        y: datain['y'],
+                        type: 'scatter',
+                        mode: 'markers',
+                        name: 'lights',
+                        marker: { color: 'yellow', symbol:'diamond', size: datain['size'] }
+                    }];
+        
+        if (startstop == "start"){
+            Plotly.addTraces('canvas_perf', data_lights);
+        }else{
+            Plotly.deleteTraces('canvas_perf', -1);
+            Plotly.addTraces('canvas_perf', data_lights);
+        }       
+
+    }
+ ```
+ 
+ With a small difference with respect to drawing the tree. After the AJAX call to the back-end we use a mix of  ```Plotly.addTraces()``` and ```Plotly.deleteTraces()``` to add and remove the last set on lights that was drawn. 
+ 
+ If we run the function runLightAnimation() on 'onclick' event The animation would look like this : [![](https://img.shields.io/badge/Animation-C10316?style=for-the-badge)](https://www.loom.com/share/f8532a44882b4973a863132438955f3e?sharedAppSource=personal_library)
 
 
 
