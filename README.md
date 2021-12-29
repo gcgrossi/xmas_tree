@@ -284,5 +284,118 @@ fig.show()
 ```
 <img src="static/example_tree.png">
 
+## Adding the light animation
+
+In order to add some light animation we are going to deploy this tree on a local Flask server. The server is used as a backend to an html page that will:
+
+1. Fetch the data for drawing the tree by making a request to one back-end endpoint.
+2. Draw the tree using the Javascript version of plotly.
+3. Fetch the data for drawing the lights and update the tree at constant interval of time.
+
+All the code can be found in the Github repository. Here we are going to summarize the main three steps.
+
+## Deploying to a Flask server
+
+This is implemented in ```main.py``` by the following trunk of code:
+
+```python
+from flask import Flask
+from flask import render_template
+import tree
+import json
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    # route that renders the home page html
+    return render_template('index.html')
+
+@app.route('/getdata', methods=['GET'])
+def getdata():
+    # this is an API that
+    # fetches the information to construct the tree
+    # of the tree. Wen called with AJAX return a json with the info
+    dicttree = tree.get_tree()
+    return json.dumps(dicttree,separators=(',', ':'))
+
+@app.route('/light', methods=['GET'])
+def light():
+    # this is an API that
+    # draws a random row of the dataframes representing the lights
+    # of the tree. Wen called with AJAX return a json with the info
+    dict_light= {}
+    i = random.randint(0,len(app.config['xl']))    
+    dict_light['x'] = app.config['xl'].loc[i,:].to_list()
+    dict_light['y'] = app.config['yl'].loc[i,:].to_list()
+    dict_light['size'] = app.config['xs'].loc[i,:].to_list()
+
+    return json.dumps(dict_light,separators=(',', ':'))
+
+if __name__ == '__main__':
+    # before running the app we assign the dataframes with the
+    # coordinates of the lights as a global app variables
+    app.config['xl'],app.config['yl'],app.config['xs'] = tree.get_lights()
+    # we run the app
+    app.run(host='127.0.0.1', port=8080, debug=True)
+```
+
+There are mainly three routes:
+
+```python
+@app.route('/getdata', methods=['GET'])
+def getdata():
+
+.
+.
+
+@app.route('/light', methods=['GET'])
+def light():
+```
+
+These two routes are endpoints tha call the functions in ```tree.py``` and fetch the information to draw the tree, returning the information in a json format. 
+
+```getdata()``` uses the function ```get_tree()```, that has the same code we discussed before. ```light()``` takes the info from three DataFrames that we fill at server startup and we store as state object for the app. The dataframes are constructed using the function ```get_lights()```.
+
+The logic behind the lights is the same as for the leafw of the three. In this case the ```nleaf``` parameter is replaced by ```nlights``` parameter, and we construct a set of 100 different light positions and sizes that we store as rows in the output DataFrames. Every time we need a set of lights we will just pick a random row from the DatFrame and return it. If we repeat every n seconds and draw each set of light removing the precedent, we will have a nice light animation.
+
+## Building the front-end 
+
+The main part of the front-end is stored in ```index.html```. The information for drawing the tree is obtained at startup by the following code.
+
+```javascript
+document.addEventListener('DOMContentLoaded', function () {
+        // generate all the drawing at document load
+        getGenerateData();
+    });
+    
+  function getGenerateData() {
+        // make an AJAX call to the backend
+        // obtain the tree data in JSON format
+        // and call the generateChart function if
+        // response id successfull
+        console.log('performing AJAX request ... ')
+
+        $.ajax({
+            url: '/getdata',
+            type: 'GET',
+            success: function (response) {
+                console.log('Success');
+                console.log(JSON.parse(response))
+                generateCharts(JSON.parse(response));
+            },
+            error: function (response) {
+                console.log('Error');
+                console.log(JSON.parse(response));
+            }
+        });
+    }
+
+```
+
+The most important part is the AJAX request in ```getGenerateData()``` that is responsible of the communication with the back-end
+
+
+
 
 [Plotly Linkedin Post](https://www.linkedin.com/feed/update/urn:li:activity:6881628600831918080/)
